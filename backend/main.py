@@ -1,27 +1,36 @@
 from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
+
 from rag_engine import MultiDocRAG
+
+# ------------------ ENV ------------------
+load_dotenv()  # safe for local, ignored on Render
 
 # ------------------ App ------------------
 
 app = FastAPI(title="Rohit Mahesh RAG API")
 
-# ------------------ CORS (REQUIRED for browser fetch) ------------------
+# ------------------ CORS ------------------
+
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://portfolio.vercel.app",       # ⬅️ CHANGE if needed
+    "https://rohitmahesh.vercel.app",     # ⬅️ optional custom domain
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",   # Next.js dev
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ------------------ RAG Initialization ------------------
-# Load once at startup (FAISS + embeddings)
+# ------------------ RAG INIT ------------------
 
 rag = MultiDocRAG()
 
@@ -37,18 +46,13 @@ def health():
 def chat(q: str = Query(..., min_length=1)):
     """
     Streaming chat endpoint
-
-    Example:
-    http://localhost:8000/chat?q=What projects has Rohit worked on?
     """
 
     def event_stream():
-        # IMPORTANT:
-        # rag.stream_answer() is a SYNC generator
         for token in rag.stream_answer(q):
             yield token
 
     return StreamingResponse(
         event_stream(),
-        media_type="text/plain; charset=utf-8"
+        media_type="text/plain; charset=utf-8",
     )
