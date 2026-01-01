@@ -3,3 +3,6 @@ uvicorn
 python-dotenv
 google-generativeai
 pydantic
+faiss-cpu
+numpy
+tiktoken
